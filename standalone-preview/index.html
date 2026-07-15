@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Write with Us — Quilling Card</title>
+<link href="https://fonts.googleapis.com/css2?family=Cardo:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; min-height:100vh; background:#f7f2ea; font-family:'DM Sans', sans-serif; }
+  .qc-widget * { box-sizing: border-box; font-family: 'DM Sans', sans-serif; }
+  .qc-widget { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+  .qc-bubble {
+    background: #000; color: #fff; border: none; border-radius: 999px;
+    padding: 14px 22px; font-size: 14px; letter-spacing: .03em; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35); display: flex; align-items: center; gap: 8px;
+    transition: transform .15s ease;
+  }
+  .qc-bubble:hover { transform: translateY(-2px); }
+  .qc-panel {
+    display: none; position: absolute; bottom: 64px; right: 0; width: 360px; max-height: 560px;
+    background: #fff; border-radius: 16px; box-shadow: 0 16px 48px rgba(44,45,46,.25);
+    overflow: hidden; border: 1px solid #e5e0e3;
+  }
+  .qc-panel.open { display: flex; flex-direction: column; }
+  .qc-head { background: #af95a6; color: #fff; padding: 18px 20px; }
+  .qc-head-top { display: flex; justify-content: space-between; align-items: center; }
+  .qc-head-title { font-family: 'Cardo', serif; font-size: 22px; }
+  .qc-head-sub { font-size: 13px; color: #fff; opacity: .9; margin-top: 4px; }
+  .qc-close { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; line-height: 1; }
+  .qc-body { padding: 18px; overflow-y: auto; flex: 1; }
+  .qc-section { background: #fff; border: 1px solid #e9e2d8; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .qc-section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; cursor: default; }
+  .qc-num { width: 22px; height: 22px; border-radius: 50%; background: #af95a6; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .qc-section-title { font-family: 'Cardo', serif; font-size: 17px; color: #2c2d2e; }
+  .qc-section-title.small { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: #2c2d2e; font-family: 'DM Sans', sans-serif; }
+  .qc-optional { font-size: 11px; border: 1px solid #ddd; border-radius: 999px; padding: 2px 10px; color: #888; margin-left: auto; }
+  .qc-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #af95a6; margin-bottom: 6px; display: block; font-weight: 700; }
+  .qc-row { display: flex; gap: 10px; }
+  .qc-row > div { flex: 1; }
+  .qc-input, .qc-select, .qc-textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd7db; border-radius: 8px;
+    background: #fff; font-size: 14px; margin-bottom: 14px; color: #2c2d2e;
+  }
+  .qc-textarea { resize: vertical; min-height: 56px; }
+  .qc-btn {
+    width: 100%; background: #2c2d2e; color: #fff; border: none; border-radius: 999px;
+    padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: .02em;
+  }
+  .qc-btn:disabled { opacity: .6; cursor: default; }
+  .qc-btn-secondary { background: transparent; color: #af95a6; border: 1px solid #af95a6; margin-top: 8px; border-radius: 8px; }
+  .qc-result { background: #fff; border: 1px solid #e9e2d8; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .qc-result-text { font-family: 'Cardo', serif; font-size: 16px; color: #2c2d2e; line-height: 1.5; margin-bottom: 10px; white-space: pre-wrap; }
+  .qc-copy { font-size: 12px; color: #af95a6; background: none; border: none; cursor: pointer; font-weight: 700; padding: 0; }
+  .qc-copy.copied { color: #2c2d2e; }
+  .qc-loading { text-align: center; color: #af95a6; font-size: 13px; padding: 20px 0; }
+  .qc-back { font-size: 12px; color: #af95a6; background: none; border: none; cursor: pointer; margin: 0 0 16px; padding: 0; text-decoration: underline; display: block; }
+
+  @media (max-width: 480px) {
+    .qc-widget { bottom: 16px; right: 16px; left: 16px; }
+    .qc-bubble { width: 100%; justify-content: center; font-size: 13px; padding: 13px 18px; }
+    .qc-panel { width: 100%; left: 0; right: 0; max-height: 75vh; }
+    .qc-tooltip { width: 100%; left: 0; right: 0; box-sizing: border-box; }
+    .qc-tooltip::after { right: 32px; }
+  }
+  .qc-tooltip {
+    position: absolute; bottom: 68px; right: 0; width: 260px;
+    background: #2c2d2e; color: #fff; border-radius: 14px; padding: 16px 18px;
+    font-size: 14px; line-height: 1.5; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    animation: qcPop .25s ease;
+  }
+  .qc-tooltip::after {
+    content: ''; position: absolute; bottom: -10px; right: 28px;
+    border-width: 10px 10px 0 10px; border-style: solid;
+    border-color: #2c2d2e transparent transparent transparent;
+  }
+  .qc-tooltip-x {
+    position: absolute; top: 8px; right: 10px; background: none; border: none;
+    color: #aaa; font-size: 17px; cursor: pointer; line-height: 1;
+  }
+  @keyframes qcPop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .qc-page-content { max-width: 600px; margin: 80px auto; text-align: center; padding: 0 20px; }
+  .qc-page-content h1 { font-family: 'Cardo', serif; color: #2c2d2e; font-size: 32px; }
+  .qc-page-content p { color: #6b6b6b; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="qc-page-content">
+  <h1>Write with Us</h1>
+  <p>A little preview of the Quilling Card message-writing assistant. Tap the button in the corner to try it.</p>
+</div>
+
+<div class="qc-widget">
+  <div class="qc-panel" id="qcPanel">
+    <div class="qc-head">
+      <div class="qc-head-top">
+        <span class="qc-head-title">Write with Us</span>
+        <button class="qc-close" onclick="qcToggle(false)">×</button>
+      </div>
+      <div class="qc-head-sub" id="qcSubhead">Tell us about them — we'll write the rest.</div>
+    </div>
+    <div class="qc-body" id="qcBody">
+      <!-- filled by JS -->
+    </div>
+  </div>
+  <button class="qc-bubble" onclick="qcToggle(true)">✦ Help me write this card</button>
+  <div class="qc-tooltip" id="qcTooltip" style="display:none;">
+    <button class="qc-tooltip-x" onclick="qcTooltipClose()">×</button>
+    Stuck on what to write? Tap here and we'll help you write the perfect card message ✦
+  </div>
+</div>
+
+<script>
+(function(){
+  // ⚠️ Paste your Cloudflare Worker URL here once it's deployed
+  const WORKER_URL = "https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev";
+
+  const state = { occasion:'', recipient:'', tone:'Heartfelt', notes:'', results:[] };
+
+  setTimeout(()=>{
+    document.getElementById('qcTooltip').style.display = 'block';
+  }, 2000);
+
+  window.qcTooltipClose = function(){
+    document.getElementById('qcTooltip').style.display = 'none';
+  };
+
+  window.qcToggle = function(open){
+    document.getElementById('qcPanel').classList.toggle('open', open);
+    qcTooltipClose();
+    if(open) renderForm();
+  };
+
+  window.renderForm = function(){
+    document.getElementById('qcSubhead').textContent = "Tell us about them — we'll write the rest.";
+    document.getElementById('qcBody').innerHTML = `
+      <div class="qc-section">
+        <div class="qc-section-head">
+          <span class="qc-num">1</span>
+          <span class="qc-section-title">Make it personal</span>
+        </div>
+
+        <label class="qc-label">Occasion</label>
+        <input class="qc-input" id="qcOccasion" placeholder="Birthday, anniversary, thank you..." value="${state.occasion}">
+
+        <label class="qc-label">Who's it for?</label>
+        <input class="qc-input" id="qcRecipient" placeholder="My mom, a close friend, my boss..." value="${state.recipient}">
+
+        <label class="qc-label">Tone</label>
+        <select class="qc-select" id="qcTone">
+          ${['Heartfelt','Playful & funny','Elegant & poetic','Simple & warm'].map(t =>
+            `<option ${t===state.tone?'selected':''}>${t}</option>`).join('')}
+        </select>
+
+        <label class="qc-label">Anything to include? (optional)</label>
+        <textarea class="qc-textarea" id="qcNotes" placeholder="An inside joke, a memory, why you're grateful...">${state.notes}</textarea>
+      </div>
+
+      <div class="qc-section">
+        <div class="qc-section-head">
+          <span class="qc-num">2</span>
+          <span class="qc-section-title small">Quick Write</span>
+          <span class="qc-optional">Optional</span>
+        </div>
+        <div class="qc-row">
+          <div>
+            <label class="qc-label">Occasion</label>
+            <select class="qc-select" id="qcQuickOccasion" onchange="qcQuickFill()">
+              <option value="">Pick one</option>
+              ${['Birthday','Anniversary','Thank You','Congratulations','Sympathy','Just Because','Wedding','New Baby'].map(o=>`<option>${o}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="qc-label">Recipient</label>
+            <select class="qc-select" id="qcQuickRecipient" onchange="qcQuickFill()">
+              <option value="">Pick one</option>
+              ${['Best Friend','Mom','Dad','Partner','Sibling','Coworker','Boss','Grandparent'].map(r=>`<option>${r}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button class="qc-btn" onclick="qcGenerate()">Write My Message ✦</button>
+    `;
+  }
+
+  window.qcQuickFill = function(){
+    const o = document.getElementById('qcQuickOccasion').value;
+    const r = document.getElementById('qcQuickRecipient').value;
+    if(o) document.getElementById('qcOccasion').value = o;
+    if(r) document.getElementById('qcRecipient').value = r;
+  };
+
+  function renderLoading(){
+    document.getElementById('qcSubhead').textContent = "One moment...";
+    document.getElementById('qcBody').innerHTML = `<div class="qc-loading" id="qcLoadingText">Reading your details...</div>`;
+    const steps = ["Reading your details...", "Finding the right words...", "Polishing your message..."];
+    let i = 0;
+    const el = document.getElementById('qcLoadingText');
+    const interval = setInterval(()=>{
+      i++;
+      if(i < steps.length && el) el.textContent = steps[i];
+      else clearInterval(interval);
+    }, 700);
+  }
+
+  function renderResults(){
+    document.getElementById('qcSubhead').textContent = "Here's what we came up with.";
+    document.getElementById('qcBody').innerHTML = `
+      <button class="qc-back" onclick="renderForm()">← Edit details</button>
+      ${state.results.map((r,i) => `
+        <div class="qc-result">
+          <div class="qc-result-text">${r}</div>
+          <button class="qc-copy" onclick="qcCopy(this, ${i})">Copy this message</button>
+        </div>
+      `).join('')}
+      <button class="qc-btn qc-btn-secondary" onclick="qcGenerate()">Give me new options</button>
+    `;
+  }
+
+  window.qcCopy = function(btn, i){
+    navigator.clipboard.writeText(state.results[i]);
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = 'Copy this message'; btn.classList.remove('copied'); }, 1800);
+  };
+
+  window.qcGenerate = async function(){
+    state.occasion = document.getElementById('qcOccasion')?.value || state.occasion;
+    state.recipient = document.getElementById('qcRecipient')?.value || state.recipient;
+    state.tone = document.getElementById('qcTone')?.value || state.tone;
+    state.notes = document.getElementById('qcNotes')?.value || state.notes;
+
+    renderLoading();
+
+    const prompt = `Write 3 short handwritten-style greeting card messages for a Quilling Card (an artisanal, elegant paper-quilled card brand).
+Occasion: ${state.occasion || 'a special occasion'}
+Recipient: ${state.recipient || 'someone special'}
+Tone: ${state.tone}
+Details to weave in: ${state.notes || 'none given'}
+
+Rules: each message 2-4 sentences, sounds genuinely personal (not generic), no em dashes, no cheesy greeting-card clichés. Return ONLY valid JSON: an array of 3 strings, nothing else.`;
+
+    try{
+      const response = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await response.json();
+      let raw = data.choices?.[0]?.message?.content?.trim() || '[]';
+      raw = raw.replace(/```json|```/g,'').trim();
+      state.results = JSON.parse(raw);
+    } catch(e){
+      state.results = ["We couldn't write that just now — tap 'Give me new options' to try again."];
+    }
+    renderResults();
+  };
+})();
+</script>
+</body>
+</html>
